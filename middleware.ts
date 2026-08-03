@@ -32,7 +32,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const url = request.nextUrl.clone()
-  const isAuthRoute = url.pathname.startsWith('/login') || url.pathname.startsWith('/register')
+  const isAuthRoute =
+    url.pathname.startsWith('/login') ||
+    url.pathname.startsWith('/register') ||
+    url.pathname.startsWith('/confirm') ||
+    url.pathname.startsWith('/auth/callback')
 
   // Protect app routes (home, courses, dashboard, grades, assignments, discussions, profile, settings, admin)
   if (!user && !isAuthRoute && url.pathname !== '/') {
@@ -40,7 +44,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthRoute && !url.pathname.startsWith('/auth/callback')) {
     url.pathname = '/home'
     return NextResponse.redirect(url)
   }
