@@ -18,57 +18,20 @@ import {
   ChevronRight,
 } from 'lucide-react'
 
-interface Announcement {
-  id: string
-  title: string
-  content: string
-  date: string
-  priority: 'Urgent' | 'Important' | 'Update' | 'Notice'
-  pinned: boolean
-}
+import { Database } from '@/types/database.types'
+
+type Announcement = Database['public']['Tables']['announcements']['Row']
 
 export default function HomePage() {
   const [profile, setProfile] = useState<{ full_name: string | null; role: UserRole } | null>(null)
   const [stats, setStats] = useState({ courses: 0, enrollments: 0, assignments: 0 })
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
   const [isAnnouncementsModalOpen, setIsAnnouncementsModalOpen] = useState(false)
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
   const supabase = createClient()
 
-  const sampleAnnouncements: Announcement[] = [
-    {
-      id: '1',
-      title: 'Midterm Exam Schedule & Room Allocations Released',
-      content: 'The official schedule for Midterm Examinations is now published. Please check your course pages and verify your assigned examination rooms and timings.',
-      date: '2026-08-05',
-      priority: 'Urgent',
-      pinned: true,
-    },
-    {
-      id: '2',
-      title: 'New Computer Science & Web Architecture Courses Added',
-      content: 'Check out the newly published courses in Next.js 14 App Architecture, Cloud Computing, and Advanced Database Management.',
-      date: '2026-08-01',
-      priority: 'Update',
-      pinned: true,
-    },
-    {
-      id: '3',
-      title: 'System Maintenance & Platform Performance Upgrade',
-      content: 'Scheduled database optimization will take place this Sunday at 02:00 AM UTC. Expect minimal service interruption for 15 minutes.',
-      date: '2026-07-28',
-      priority: 'Notice',
-      pinned: false,
-    },
-    {
-      id: '4',
-      title: 'Annual CS Lords Coding Hackathon Registration Open',
-      content: 'Registration for the 2026 CS Lords Innovation Hackathon is now open. Form teams of up to 4 members and submit your registration before August 20th.',
-      date: '2026-07-25',
-      priority: 'Important',
-      pinned: false,
-    },
-  ]
+
 
   useEffect(() => {
     async function loadHomeData() {
@@ -84,11 +47,21 @@ export default function HomePage() {
       if (profileData) setProfile(profileData)
 
       // Fetch user specific stats
-      const [coursesCount, enrollmentsCount, assignmentsCount] = await Promise.all([
+      const [coursesCount, enrollmentsCount, assignmentsCount, announcementsRes] = await Promise.all([
         supabase.from('courses').select('id', { count: 'exact', head: true }),
         supabase.from('enrollments').select('id', { count: 'exact', head: true }),
         supabase.from('assignments').select('id', { count: 'exact', head: true }),
+        supabase.from('announcements')
+          .select('*')
+          .eq('status', 'Published')
+          .order('pinned', { ascending: false })
+          .order('published_date', { ascending: false })
+          .order('created_at', { ascending: false })
       ])
+
+      if (announcementsRes.data) {
+        setAnnouncements(announcementsRes.data as Announcement[])
+      }
 
       setStats({
         courses: coursesCount.count || 0,
@@ -102,12 +75,15 @@ export default function HomePage() {
     loadHomeData()
   }, [supabase])
 
-  const priorityBadgeVariant = (priority: Announcement['priority']) => {
-    switch (priority) {
+  const priorityBadgeVariant = (category: Announcement['category']) => {
+    switch (category) {
       case 'Urgent':
-      case 'Important':
+      case 'Exam':
         return 'red'
+      case 'Event':
+        return 'green'
       case 'Update':
+      case 'Notice':
       default:
         return 'blue'
     }
@@ -171,7 +147,7 @@ export default function HomePage() {
             <p className="text-xs text-[var(--text-secondary)] font-medium">Active Enrollments</p>
             <p className="text-xl font-extrabold text-[var(--text-primary)] mt-0.5">{stats.enrollments}</p>
           </div>
-          <div className="relative z-10 p-2.5 rounded-xl bg-[var(--red-action)]/10 border border-[var(--red-action)]/30 text-[var(--red-action)]">
+          <div className="relative z-10 p-2.5 rounded-xl bg-[var(--blue-glow)]/10 border border-[var(--blue-glow)]/30 text-[var(--blue-glow)]">
             <TrendingUp className="w-5 h-5" />
           </div>
           {/* Decorative Grid Lines */}
@@ -220,42 +196,57 @@ export default function HomePage() {
 
           {/* Dedicated Vertical Scrollable Announcements Feed */}
           <div className="max-h-[360px] overflow-y-auto overflow-x-hidden pr-1.5 space-y-3">
-            {sampleAnnouncements.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedAnnouncement(item)}
-                className="p-3.5 rounded-lg bg-[var(--bg-primary)]/60 backdrop-blur-md border border-[var(--blue-border)]/40 hover:border-[var(--blue-border)] hover:shadow-[0_0_12px_rgba(30,144,255,0.2)] transition cursor-pointer flex flex-col justify-between space-y-2"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {item.pinned && (
-                        <Pin className="w-3 h-3 text-amber-400 rotate-45 shrink-0" />
-                      )}
-                      <Badge variant={priorityBadgeVariant(item.priority)}>
-                        {item.priority}
-                      </Badge>
+            {announcements.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-500">No active announcements</div>
+            ) : (
+              announcements.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedAnnouncement(item)}
+                  className="p-3.5 rounded-lg bg-[var(--bg-primary)]/60 backdrop-blur-md border border-[var(--blue-border)]/40 hover:border-[var(--blue-border)] hover:shadow-[0_0_12px_rgba(30,144,255,0.2)] transition cursor-pointer flex flex-col justify-between space-y-2"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        {item.pinned && (
+                          <Pin className="w-3 h-3 text-amber-400 rotate-45 shrink-0" />
+                        )}
+                        <Badge variant={priorityBadgeVariant(item.category)}>
+                          {item.category}
+                        </Badge>
+                      </div>
+                      <span className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1 shrink-0">
+                        <Calendar className="w-3 h-3 text-[var(--blue-icon)]" />
+                        {item.published_date ? new Date(item.published_date).toLocaleDateString() : new Date(item.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1 shrink-0">
-                      <Calendar className="w-3 h-3 text-[var(--blue-icon)]" />
-                      {new Date(item.date).toLocaleDateString()}
-                    </span>
+
+                    {item.image_url && (
+                      <div className="rounded-lg overflow-hidden my-2 border border-[var(--blue-border)]/20 relative w-full shrink-0">
+                        <img src={item.image_url} alt="Announcement Media" className="w-full h-auto block" />
+                      </div>
+                    )}
+
+                    {item.title && (
+                      <h3 className="text-xs sm:text-sm font-bold text-white line-clamp-1 hover:text-[var(--blue-glow)] transition">
+                        {item.title}
+                      </h3>
+                    )}
+
+                    {item.content && (
+                      <p className="text-[11px] text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                        {item.content}
+                      </p>
+                    )}
                   </div>
 
-                  <h3 className="text-xs sm:text-sm font-bold text-white line-clamp-1 hover:text-[var(--blue-glow)] transition">
-                    {item.title}
-                  </h3>
-
-                  <p className="text-[11px] text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
-                    {item.content}
-                  </p>
+                  <div className="text-[10px] font-semibold text-[var(--blue-glow)] flex items-center justify-between gap-1 pt-1">
+                    <span>Read full announcement &rarr;</span>
+                    {item.priority === 'High' && <span className="text-red-400 font-bold">High Priority</span>}
+                  </div>
                 </div>
-
-                <div className="text-[10px] font-semibold text-[var(--blue-glow)] flex items-center gap-1 pt-1">
-                  Read full announcement &rarr;
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -270,7 +261,7 @@ export default function HomePage() {
         title="Site Announcements"
       >
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-          {sampleAnnouncements.map((item) => (
+          {announcements.map((item) => (
             <div
               key={item.id}
               className="p-3.5 rounded-lg bg-[var(--bg-primary)]/50 border border-slate-700/60 space-y-2"
@@ -278,18 +269,28 @@ export default function HomePage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   {item.pinned && <Pin className="w-3 h-3 text-amber-400 rotate-45" />}
-                  <Badge variant={priorityBadgeVariant(item.priority)}>
-                    {item.priority}
+                  <Badge variant={priorityBadgeVariant(item.category)}>
+                    {item.category}
                   </Badge>
                 </div>
                 <span className="text-[10px] text-slate-400 flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-[var(--blue-icon)]" />
-                  {new Date(item.date).toLocaleDateString()}
+                  {item.published_date ? new Date(item.published_date).toLocaleDateString() : new Date(item.created_at).toLocaleDateString()}
                 </span>
               </div>
 
-              <h4 className="text-sm font-bold text-white">{item.title}</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">{item.content}</p>
+              {item.image_url && (
+                <div className="rounded-lg overflow-hidden my-2 border border-slate-700/60 relative w-full">
+                  <img src={item.image_url} alt="Announcement Media" className="w-full h-auto block" />
+                </div>
+              )}
+
+              {item.title && (
+                <h4 className="text-sm font-bold text-white">{item.title}</h4>
+              )}
+              {item.content && (
+                <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{item.content}</p>
+              )}
             </div>
           ))}
         </div>
@@ -304,18 +305,37 @@ export default function HomePage() {
         {selectedAnnouncement && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Badge variant={priorityBadgeVariant(selectedAnnouncement.priority)}>
-                {selectedAnnouncement.priority}
+              <Badge variant={priorityBadgeVariant(selectedAnnouncement.category)}>
+                {selectedAnnouncement.category}
               </Badge>
               <span className="text-xs text-slate-400 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-[var(--blue-icon)]" />
-                {new Date(selectedAnnouncement.date).toLocaleDateString()}
+                {selectedAnnouncement.published_date ? new Date(selectedAnnouncement.published_date).toLocaleDateString() : new Date(selectedAnnouncement.created_at).toLocaleDateString()}
               </span>
             </div>
 
-            <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
-              {selectedAnnouncement.content}
-            </p>
+            {selectedAnnouncement.content && (
+              <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
+                {selectedAnnouncement.content}
+              </p>
+            )}
+
+            {selectedAnnouncement.image_url && (
+              <div className="mt-4 rounded-lg overflow-hidden border border-[var(--blue-border)]/30">
+                <img src={selectedAnnouncement.image_url} alt="Announcement Media" className="w-full h-auto block" />
+              </div>
+            )}
+
+            {selectedAnnouncement.external_url && (
+              <a
+                href={selectedAnnouncement.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--blue-glow)] hover:text-white bg-[var(--blue-glow)]/10 hover:bg-[var(--blue-glow)]/20 px-3 py-1.5 rounded-lg transition-colors border border-[var(--blue-glow)]/30"
+              >
+                View External Link &rarr;
+              </a>
+            )}
           </div>
         )}
       </Modal>

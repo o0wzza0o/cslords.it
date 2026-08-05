@@ -173,6 +173,20 @@ export default function AdminDashboardPage() {
                     </p>
                   </div>
                 </Link>
+
+                <Link
+                  href="/admin/announcements"
+                  className="p-4 rounded-xl bg-[var(--bg-primary)]/40 border border-[var(--blue-border)]/40 hover:border-emerald-500/50 flex items-center justify-between group transition"
+                >
+                  <div>
+                    <h4 className="font-semibold text-sm text-white group-hover:text-emerald-400">
+                      Site Announcements &rarr;
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      Manage platform-wide announcements, events, and urgent notices.
+                    </p>
+                  </div>
+                </Link>
               </div>
             </div>
           </>

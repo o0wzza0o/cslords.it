@@ -10,6 +10,9 @@ export type UserRole = 'student' | 'teacher' | 'admin'
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced'
 export type EnrollmentMode = 'Automatic' | 'Manual'
 export type NotificationType = 'course' | 'grade' | 'assignment' | 'discussion'
+export type AnnouncementCategory = 'Urgent' | 'Update' | 'Notice' | 'Event' | 'Exam'
+export type AnnouncementPriority = 'Low' | 'Medium' | 'High'
+export type AnnouncementStatus = 'Draft' | 'Published' | 'Archived'
 
 export type Database = {
   public: {
@@ -575,7 +578,7 @@ export type Database = {
           id?: string
           discussion_id?: string
           user_id?: string | null
-          content: string
+          content?: string
           created_at?: string
         }
         Relationships: [
@@ -589,6 +592,62 @@ export type Database = {
           {
             foreignKeyName: "discussion_replies_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      announcements: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          category: AnnouncementCategory
+          priority: AnnouncementPriority
+          status: AnnouncementStatus
+          image_url: string | null
+          external_url: string | null
+          pinned: boolean
+          published_date: string | null
+          created_at: string
+          updated_at: string
+          author_id: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          content: string
+          category: AnnouncementCategory
+          priority?: AnnouncementPriority
+          status?: AnnouncementStatus
+          image_url?: string | null
+          external_url?: string | null
+          pinned?: boolean
+          published_date?: string | null
+          created_at?: string
+          updated_at?: string
+          author_id?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          content?: string
+          category?: AnnouncementCategory
+          priority?: AnnouncementPriority
+          status?: AnnouncementStatus
+          image_url?: string | null
+          external_url?: string | null
+          pinned?: boolean
+          published_date?: string | null
+          created_at?: string
+          updated_at?: string
+          author_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_author_id_fkey"
+            columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
