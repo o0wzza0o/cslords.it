@@ -60,7 +60,7 @@ export default function RegisterPage() {
         router.refresh()
       } else {
         setIsLoading(false)
-        setSuccessMsg('Account created successfully! If email confirmation is enabled in your Supabase project settings, please verify your email before logging in.')
+        setSuccessMsg('Please check your email to verify your account.')
       }
     } catch (err: any) {
       setError('An unexpected error occurred.')
