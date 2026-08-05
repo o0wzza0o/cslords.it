@@ -60,7 +60,7 @@ export default function RegisterPage() {
         router.refresh()
       } else {
         setIsLoading(false)
-        setSuccessMsg('Please check your email to verify your account.')
+        setSuccessMsg('Please check your (Outlook Mail App) to verify your account.')
       }
     } catch (err: any) {
       setError('An unexpected error occurred.')

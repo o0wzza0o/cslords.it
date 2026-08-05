@@ -53,8 +53,9 @@ export function FloatingNotice() {
           <Info className="w-5 h-5 text-[var(--blue-glow)] drop-shadow-[0_0_5px_rgba(46,111,217,0.8)]" />
         </div>
         <div className="flex-1">
-          <p className="text-[13px] text-white leading-relaxed font-medium">
-            الموقع ليس له أي علاقة بنظام LMS التابع للجامعه , و يجب انشاء حساب جديد ب استخدام الايميل الجامعي لدخول الموقع
+         <p className="text-[13px] text-white leading-relaxed font-medium">
+           الموقع ليس له أي علاقة بنظام LMS التابع للجامعه , و يجب انشاء حساب جديد ب استخدام الايميل الجامعي لدخول الموقع
+مع العلم ان الموقع في نسخه ( البيتا للتجربه )
           </p>
         </div>
         <button
