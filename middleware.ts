@@ -36,7 +36,8 @@ export async function middleware(request: NextRequest) {
     url.pathname.startsWith('/login') ||
     url.pathname.startsWith('/register') ||
     url.pathname.startsWith('/confirm') ||
-    url.pathname.startsWith('/auth/callback')
+    url.pathname.startsWith('/auth/callback') ||
+    url.pathname.startsWith('/suspended')
 
   // Protect app routes (home, courses, dashboard, grades, assignments, discussions, profile, settings, admin)
   if (!user && !isAuthRoute && url.pathname !== '/') {

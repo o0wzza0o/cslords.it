@@ -24,7 +24,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: loginData, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -33,6 +33,21 @@ export default function LoginPage() {
         setError(error.message)
         setIsLoading(false)
         return
+      }
+
+      if (loginData?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('account_status')
+          .eq('id', loginData.user.id)
+          .single()
+
+        if (profile?.account_status === 'suspended') {
+          await supabase.auth.signOut()
+          setIsLoading(false)
+          router.push('/suspended')
+          return
+        }
       }
 
       router.push('/home')

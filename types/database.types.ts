@@ -13,6 +13,7 @@ export type NotificationType = 'course' | 'grade' | 'assignment' | 'discussion'
 export type AnnouncementCategory = 'Urgent' | 'Update' | 'Notice' | 'Event' | 'Exam'
 export type AnnouncementPriority = 'Low' | 'Medium' | 'High'
 export type AnnouncementStatus = 'Draft' | 'Published' | 'Archived'
+export type UserAccountStatus = 'unverified' | 'verified' | 'suspended'
 
 export type Database = {
   public: {
@@ -125,6 +126,7 @@ export type Database = {
           academic_year: number | null
           department: string | null
           semester: number | null
+          account_status: UserAccountStatus | null
           created_at: string
         }
         Insert: {
@@ -139,6 +141,7 @@ export type Database = {
           academic_year?: number | null
           department?: string | null
           semester?: number | null
+          account_status?: UserAccountStatus | null
           created_at?: string
         }
         Update: {
@@ -153,6 +156,7 @@ export type Database = {
           academic_year?: number | null
           department?: string | null
           semester?: number | null
+          account_status?: UserAccountStatus | null
           created_at?: string
         }
         Relationships: [
