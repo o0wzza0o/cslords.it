@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
 
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -22,17 +23,41 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setFieldErrors({})
     setSuccessMsg(null)
     setIsLoading(true)
 
-    if (!email.toLowerCase().trim().endsWith('@acu.edu.eg')) {
-      setError('Registration is restricted to official ACU university emails ending with @acu.edu.eg (e.g., student@acu.edu.eg).')
+    const emailPattern = /^\d{8}\.[a-zA-Z]+@acu\.edu\.eg$/
+    if (!emailPattern.test(email.toLowerCase().trim())) {
+      setFieldErrors({ email: 'الايميل مرفوض. الشكل الصحيح: 12345678.name@acu.edu.eg' })
       setIsLoading(false)
       return
     }
 
+    const studentIdMatch = email.toLowerCase().trim().match(/^(\d{8})/)
+    if (studentIdMatch) {
+      const studentId = studentIdMatch[1]
+      const prefix = studentId.substring(0, 5)
+
+      const { data: ruleData } = await supabase
+        .from('academic_rules')
+        .select('id')
+        .eq('prefix', prefix)
+        .maybeSingle()
+
+      if (!ruleData) {
+        if (prefix.startsWith('42')) {
+          setFieldErrors({ email: 'التسجيل غير متاح لهذا الآي دي حالياً. الدفعة غير مسجلة في النظام.' })
+        } else {
+          setFieldErrors({ email: 'أنت لست طالباً في كلية الحاسبات والمعلومات. التسجيل مقتصر على طلاب الكلية فقط.' })
+        }
+        setIsLoading(false)
+        return
+      }
+    }
+
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.')
+      setFieldErrors({ password: 'Password must be at least 6 characters long.' })
       setIsLoading(false)
       return
     }
@@ -102,7 +127,7 @@ export default function RegisterPage() {
           label="Full Name"
           type="text"
           required
-          placeholder="John Doe"
+          placeholder="Mix"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
         />
@@ -111,9 +136,10 @@ export default function RegisterPage() {
           label="Email Address (@acu.edu.eg)"
           type="email"
           required
-          placeholder="student@acu.edu.eg"
+          placeholder="id.name@acu.edu.eg"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          error={fieldErrors.email}
         />
 
         <Input
@@ -123,6 +149,7 @@ export default function RegisterPage() {
           placeholder="At least 6 characters"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          error={fieldErrors.password}
         />
 
 

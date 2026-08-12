@@ -1,0 +1,133 @@
+    <!-- Card -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="max-width:520px;background:linear-gradient(145deg,#0f1730 0%,#080d1f 100%);border:1px solid rgba(46,111,217,0.45);border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(46,111,217,0.18),0 0 0 1px rgba(46,111,217,0.08);">
+
+      <!-- Top accent bar -->
+      <tr>
+        <td style="background:linear-gradient(90deg,#b91c1c 0%,#1e90ff 100%);height:3px;font-size:0;line-height:0;">&nbsp;</td>
+      </tr>
+
+      <!-- Header -->
+      <tr>
+        <td align="center" style="padding:36px 32px 20px;">
+
+          <!-- Logo area -->
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td align="center">
+                <!-- Logo icon box -->
+                <div style="width:56px;height:56px;background:linear-gradient(135deg,rgba(185,28,28,0.25)0%,rgba(30,144,255,0.15)100%);border:1px solid rgba(46,111,217,0.5);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 0 20px rgba(30,144,255,0.2);">
+                  <img src="https://cslords.it/logo.png"
+                       alt="CS Lords"
+                       width="36" height="36"
+                       style="display:block;object-fit:contain;" />
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td align="center">
+                <span style="font-size:22px;font-weight:900;letter-spacing:1px;color:#ffffff;">CS&nbsp;</span><span style="font-size:22px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,#1e90ff,#b91c1c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">LORDS</span>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding-top:4px;">
+                <span style="font-size:10px;color:#4b6080;letter-spacing:2px;text-transform:uppercase;font-weight:500;">Faculty of Computer Science</span>
+              </td>
+            </tr>
+          </table>
+
+        </td>
+      </tr>
+
+      <!-- Divider -->
+      <tr>
+        <td style="padding:0 32px;">
+          <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(46,111,217,0.4),transparent);"></div>
+        </td>
+      </tr>
+
+      <!-- Body content -->
+      <tr>
+        <td style="padding:32px 40px 28px;">
+
+          <!-- Badge -->
+          <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+            <tr>
+              <td style="background:rgba(30,144,255,0.1);border:1px solid rgba(30,144,255,0.3);border-radius:20px;padding:4px 14px;">
+                <span style="font-size:10px;font-weight:700;color:#4aa8ff;letter-spacing:1.5px;text-transform:uppercase;">Email Verification</span>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Heading -->
+          <p style="font-size:20px;font-weight:800;color:#ffffff;margin:0 0 10px;line-height:1.3;">
+            Confirm Your Email Address
+          </p>
+
+          <!-- Subtitle -->
+          <p style="font-size:13px;color:#8899b4;margin:0 0 28px;line-height:1.7;">
+            Welcome to CS Lords. One quick step before you get started — confirm your email address to activate your account and access your courses, grades, and assignments.
+          </p>
+
+          <!-- CTA Button -->
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td align="center">
+                <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup"
+                   style="display:inline-block;background:linear-gradient(135deg,#b91c1c 0%,#991111 100%);color:#ffffff;font-size:14px;font-weight:700;padding:14px 44px;border-radius:10px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 4px 24px rgba(185,28,28,0.45),inset 0 1px 0 rgba(255,255,255,0.1);">
+                  ✓ &nbsp;Confirm My Email
+                </a>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Expiry note -->
+          <p style="font-size:11px;color:#4b6080;text-align:center;margin:18px 0 0;">
+            This link expires in <strong style="color:#8899b4;">24 hours</strong> and can only be used once.
+          </p>
+
+        </td>
+      </tr>
+
+      <!-- Divider -->
+      <tr>
+        <td style="padding:0 32px;">
+          <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(46,111,217,0.3),transparent);"></div>
+        </td>
+      </tr>
+
+      <!-- Info row -->
+      <tr>
+        <td style="padding:20px 40px 28px;">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <!-- Icon block -->
+              <td width="36" valign="top" style="padding-right:10px;padding-top:2px;">
+                <div style="width:32px;height:32px;background:rgba(30,144,255,0.08);border:1px solid rgba(30,144,255,0.2);border-radius:8px;text-align:center;line-height:32px;font-size:14px;">🔒</div>
+              </td>
+              <td valign="top">
+                <p style="font-size:11px;color:#4b6080;margin:0;line-height:1.6;">
+                  If you didn't create a CS Lords account, you can safely ignore this email. Your email address will not be used.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="background:rgba(3,7,18,0.6);padding:16px 32px;border-top:1px solid rgba(46,111,217,0.15);">
+          <p style="font-size:10px;color:#2d3f55;text-align:center;margin:0;letter-spacing:0.5px;">
+            CS Lords Platform · Faculty of Computer Science · ACU<br/>
+            <a href="https://cslords.it" style="color:#2e6fd9;text-decoration:none;">cslords.it</a>
+          </p>
+        </td>
+      </tr>
+
+    </table>
+    <!-- /Card -->
+
+  </td>
+</tr>
+
