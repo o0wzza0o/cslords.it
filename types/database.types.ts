@@ -169,6 +169,48 @@ export type Database = {
           }
         ]
       }
+      student_schedule: {
+        Row: {
+          id: string
+          student_id: string
+          course_id: string
+          day_of_week: string
+          time_slot: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          course_id: string
+          day_of_week: string
+          time_slot: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          course_id?: string
+          day_of_week?: string
+          time_slot?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_schedule_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_schedule_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       academic_rules: {
         Row: {
           id: string

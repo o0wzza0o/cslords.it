@@ -1,7 +1,7 @@
 import React from 'react'
 
 interface BadgeProps {
-  variant?: 'blue' | 'red' | 'green' | 'amber'
+  variant?: 'blue' | 'red' | 'green' | 'amber' | 'purple'
   children: React.ReactNode
   className?: string
 }
@@ -12,6 +12,7 @@ export function Badge({ variant = 'blue', children, className = '' }: BadgeProps
     red: 'bg-[var(--red-action)]/15 text-[var(--red-glow)] border-[var(--red-action)]/40',
     green: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
     amber: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    purple: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
   }
 
   return (
