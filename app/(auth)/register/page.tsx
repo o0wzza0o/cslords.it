@@ -60,7 +60,10 @@ export default function RegisterPage() {
         router.refresh()
       } else {
         setIsLoading(false)
-        setSuccessMsg('Please check your (Outlook Mail App) to verify your account.')
+        setSuccessMsg('Please check your (Outlook Mail App) to verify your account. Redirecting to login...')
+        setTimeout(() => {
+          router.push('/login')
+        }, 3000)
       }
     } catch (err: any) {
       setError('An unexpected error occurred.')
