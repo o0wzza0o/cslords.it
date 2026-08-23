@@ -24,6 +24,7 @@ import {
   Layers,
   Clock,
   BookCheck,
+  MessageCircle,
 } from 'lucide-react'
 
 export function Navbar() {
@@ -72,6 +73,7 @@ export function Navbar() {
     { label: 'My Courses', href: '/courses', icon: BookOpen },
     { label: 'My Semester', href: '/my-semester', icon: GraduationCap },
     { label: 'My Schedule', href: '/my-schedule', icon: Calendar },
+    { label: 'Chat', href: '/chat', icon: MessageCircle },
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   ]
 
@@ -166,19 +168,11 @@ export function Navbar() {
                     </Link>
 
                     <Link
-                      href="/admin/academic-rules"
+                      href="/admin/academic-structure"
                       onClick={() => setAdminMenuOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition"
                     >
-                      <GraduationCap className="w-4 h-4 text-amber-400 shrink-0" /> Academic Rules
-                    </Link>
-
-                    <Link
-                      href="/admin/levels"
-                      onClick={() => setAdminMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-200 hover:text-amber-300 hover:bg-amber-500/10 transition"
-                    >
-                      <Layers className="w-4 h-4 text-amber-400 shrink-0" /> Academic Levels
+                      <Settings className="w-4 h-4 text-amber-400 shrink-0" /> Academic Structure
                     </Link>
 
                     <Link

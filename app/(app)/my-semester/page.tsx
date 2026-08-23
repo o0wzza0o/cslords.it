@@ -355,17 +355,6 @@ export default function MySemesterPage() {
           </div>
         )}
 
-        {!isAutomatic && availableCourses.length > 0 && (
-          <div className="pt-4 border-t border-slate-700/60 flex justify-end">
-            <Button
-              onClick={handleSaveCourseSelections}
-              isLoading={saving}
-              className="text-xs"
-            >
-              <Save className="w-4 h-4" /> Save Course Selections
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   )

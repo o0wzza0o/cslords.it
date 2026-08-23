@@ -14,15 +14,15 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { UserRole } from '@/types/database.types'
 import {
   BookOpen,
-  User,
   PlusCircle,
   MessageSquare,
   FileCheck,
   CheckCircle,
-  Trash2,
-  Edit,
   ArrowLeft,
   Calendar,
+  Layers,
+  GraduationCap,
+  Laptop
 } from 'lucide-react'
 
 export default function CourseDetailPage() {
@@ -32,6 +32,7 @@ export default function CourseDetailPage() {
   const supabase = createClient()
 
   const [course, setCourse] = useState<any>(null)
+  const [courseWeeks, setCourseWeeks] = useState<any[]>([])
   const [lessons, setLessons] = useState<any[]>([])
   const [assignments, setAssignments] = useState<any[]>([])
   const [enrolled, setEnrolled] = useState(false)
@@ -39,10 +40,11 @@ export default function CourseDetailPage() {
   const [userRole, setUserRole] = useState<UserRole>('student')
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [enrolling, setEnrolling] = useState(false)
 
   // Add Lesson Modal State
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false)
+  const [lessonWeekId, setLessonWeekId] = useState('')
+  const [lessonComponentType, setLessonComponentType] = useState<'lecture' | 'tutorial' | 'lab'>('lecture')
   const [lessonTitle, setLessonTitle] = useState('')
   const [lessonDescription, setLessonDescription] = useState('')
   const [lessonContent, setLessonContent] = useState('')
@@ -51,6 +53,8 @@ export default function CourseDetailPage() {
 
   // Add Assignment Modal State
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false)
+  const [assignmentWeekId, setAssignmentWeekId] = useState('')
+  const [assignmentComponentType, setAssignmentComponentType] = useState<'lecture' | 'tutorial' | 'lab'>('lecture')
   const [assignmentTitle, setAssignmentTitle] = useState('')
   const [assignmentDescription, setAssignmentDescription] = useState('')
   const [assignmentDueDate, setAssignmentDueDate] = useState('')
@@ -87,18 +91,37 @@ export default function CourseDetailPage() {
       }
     }
 
-    // Fetch Course details
-    const { data: courseData } = await supabase
+    const { data: courseData, error: courseError } = await supabase
       .from('courses')
       .select(`
         *,
-        teacher:profiles(full_name, bio, avatar_url)
+        teacher:profiles!courses_teacher_id_fkey(full_name, bio, avatar_url)
       `)
       .eq('id', courseId)
       .single()
 
+    if (courseError) {
+      console.error('Error fetching course:', courseError)
+    }
+
     if (courseData) {
       setCourse(courseData)
+    }
+
+    // Fetch Weeks
+    const { data: weeksData } = await supabase
+      .from('course_weeks')
+      .select('*')
+      .eq('course_id', courseId)
+      .eq('is_active', true)
+      .order('order_index', { ascending: true })
+
+    if (weeksData) {
+      setCourseWeeks(weeksData)
+      if (weeksData.length > 0) {
+        setLessonWeekId(weeksData[0].id)
+        setAssignmentWeekId(weeksData[0].id)
+      }
     }
 
     // Fetch Lessons
@@ -122,31 +145,18 @@ export default function CourseDetailPage() {
     setLoading(false)
   }
 
-  const handleEnroll = async () => {
-    if (!userId) {
-      router.push('/login')
-      return
-    }
-    setEnrolling(true)
-    const { error } = await supabase.from('enrollments').insert({
-      course_id: courseId,
-      student_id: userId,
-      progress: 0,
-    })
-
-    setEnrolling(false)
-    if (!error) {
-      setEnrolled(true)
-      setProgress(0)
-    }
-  }
-
   const handleCreateLesson = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (lessonComponentType === 'tutorial' && !course?.has_tutorial) return
+    if (lessonComponentType === 'lab' && !course?.has_lab) return
+
     setSubmittingLesson(true)
 
     const { error } = await supabase.from('lessons').insert({
       course_id: courseId,
+      week_id: lessonWeekId || null,
+      component_type: lessonComponentType,
       title: lessonTitle,
       description: lessonDescription,
       content: lessonContent,
@@ -167,10 +177,16 @@ export default function CourseDetailPage() {
 
   const handleCreateAssignment = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (assignmentComponentType === 'tutorial' && !course?.has_tutorial) return
+    if (assignmentComponentType === 'lab' && !course?.has_lab) return
+
     setSubmittingAssignment(true)
 
     const { error } = await supabase.from('assignments').insert({
       course_id: courseId,
+      week_id: assignmentWeekId || null,
+      component_type: assignmentComponentType,
       title: assignmentTitle,
       description: assignmentDescription,
       due_date: assignmentDueDate ? new Date(assignmentDueDate).toISOString() : null,
@@ -213,6 +229,29 @@ export default function CourseDetailPage() {
     )
   }
 
+  // Group content by week
+  const groupedLessons: Record<string, any[]> = {}
+  const unassignedLessons: any[] = []
+  lessons.forEach((l) => {
+    if (l.week_id) {
+      if (!groupedLessons[l.week_id]) groupedLessons[l.week_id] = []
+      groupedLessons[l.week_id].push(l)
+    } else {
+      unassignedLessons.push(l)
+    }
+  })
+
+  const groupedAssignments: Record<string, any[]> = {}
+  const unassignedAssignments: any[] = []
+  assignments.forEach((a) => {
+    if (a.week_id) {
+      if (!groupedAssignments[a.week_id]) groupedAssignments[a.week_id] = []
+      groupedAssignments[a.week_id].push(a)
+    } else {
+      unassignedAssignments.push(a)
+    }
+  })
+
   return (
     <div className="space-y-8 animate-fadeIn">
       <Link
@@ -228,6 +267,16 @@ export default function CourseDetailPage() {
           <div className="flex flex-wrap gap-2">
             {course.category && <Badge variant="blue">{course.category}</Badge>}
             <Badge variant="red">{course.level}</Badge>
+            {course.has_tutorial && (
+              <span className="text-xs font-bold text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
+                <GraduationCap className="w-3.5 h-3.5" /> Tutorial Available
+              </span>
+            )}
+            {course.has_lab && (
+              <span className="text-xs font-bold text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/30 flex items-center gap-1">
+                <Laptop className="w-3.5 h-3.5" /> Lab Available
+              </span>
+            )}
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-wide">
@@ -253,7 +302,7 @@ export default function CourseDetailPage() {
           </div>
         </div>
 
-        {/* Enrollment & Action Box */}
+        {/* Enrollment Status & Instructor Actions */}
         <div className="w-full md:w-80 shrink-0 bg-[var(--bg-primary)]/40 backdrop-blur-md p-6 rounded-xl border border-slate-700/80 space-y-4">
           {enrolled ? (
             <div className="space-y-3">
@@ -263,13 +312,16 @@ export default function CourseDetailPage() {
               <ProgressBar progress={progress} />
             </div>
           ) : (
-            <Button
-              onClick={handleEnroll}
-              isLoading={enrolling}
-              className="w-full text-sm"
-            >
-              Enroll Now for Free
-            </Button>
+            <div className="space-y-2 p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/80 text-center">
+              <p className="text-xs font-semibold text-slate-300">Not Enrolled</p>
+              <p className="text-[11px] text-slate-400 leading-normal">
+                Course enrollment is managed automatically via your{' '}
+                <Link href="/my-semester" className="text-[var(--blue-glow)] font-bold hover:underline">
+                  My Semester
+                </Link>{' '}
+                page.
+              </p>
+            </div>
           )}
 
           <div className="border-t border-slate-800 pt-3 space-y-2">
@@ -303,69 +355,333 @@ export default function CourseDetailPage() {
         </div>
       </div>
 
-      {/* Course Content Tabs / Syllabus */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Lessons Syllabus */}
-        <div className="lg:col-span-2 space-y-4">
+      {/* Course Weekly Curriculum */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b border-[var(--blue-border)]/40 pb-3">
           <h2 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-[var(--blue-glow)]" /> Course Syllabus ({lessons.length} Lessons)
+            <BookOpen className="w-5 h-5 text-[var(--blue-glow)]" /> Course Curriculum
           </h2>
-
-          {lessons.length === 0 ? (
-            <div className="lms-card p-8 text-center text-xs text-slate-400">
-              No lessons have been published for this course yet.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {lessons.map((lesson, idx) => (
-                <LessonListItem
-                  key={lesson.id}
-                  id={lesson.id}
-                  courseId={courseId}
-                  title={lesson.title}
-                  description={lesson.description}
-                  orderIndex={idx}
-                  videoUrl={lesson.video_url}
-                  completed={progress >= Math.round(((idx + 1) / lessons.length) * 100)}
-                />
-              ))}
-            </div>
-          )}
+          <Badge variant="blue" className="text-xs font-mono">
+            {courseWeeks.length} Weeks
+          </Badge>
         </div>
 
-        {/* Assignments Sidebar */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white tracking-wide flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-[#9180ff]" /> Assignments ({assignments.length})
-          </h2>
+        {courseWeeks.length === 0 && unassignedLessons.length === 0 && unassignedAssignments.length === 0 ? (
+          <div className="lms-card p-12 text-center text-xs text-slate-400">
+            No course weeks or content have been published for this course yet.
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* Render Weeks */}
+            {courseWeeks.map((week) => {
+              const weekLessons = groupedLessons[week.id] || []
+              const weekAssignments = groupedAssignments[week.id] || []
 
-          {assignments.length === 0 ? (
-            <div className="lms-card p-6 text-center text-xs text-slate-400">
-              No assignments assigned for this course.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {assignments.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/assignments/${a.id}`}
-                  className="block lms-card p-4 hover:border-[var(--cyan-border)] transition"
+              // Component type filters
+              const lectureLessons = weekLessons.filter(l => !l.component_type || l.component_type === 'lecture')
+              const tutorialLessons = weekLessons.filter(l => l.component_type === 'tutorial')
+              const labLessons = weekLessons.filter(l => l.component_type === 'lab')
+
+              const lectureAssignments = weekAssignments.filter(a => !a.component_type || a.component_type === 'lecture')
+              const tutorialAssignments = weekAssignments.filter(a => a.component_type === 'tutorial')
+              const labAssignments = weekAssignments.filter(a => a.component_type === 'lab')
+
+              return (
+                <div
+                  key={week.id}
+                  className="lms-card p-6 space-y-6 border border-slate-800/90 hover:border-[var(--blue-border)]/60 transition-all rounded-xl shadow-lg"
                 >
-                  <h4 className="font-semibold text-sm text-white mb-1">{a.title}</h4>
-                  {a.due_date && (
-                    <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-[var(--blue-icon)]" /> Due:{' '}
-                      {new Date(a.due_date).toLocaleDateString()}
-                    </p>
+                  {/* Week Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <h3 className="text-lg font-bold text-[var(--cyan-glow)] flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-[var(--blue-glow)]" />
+                      {week.title}
+                    </h3>
+                    {(week.start_date || week.end_date) && (
+                      <div className="inline-flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700/60 font-mono shrink-0">
+                        <Calendar className="w-3.5 h-3.5 text-[var(--blue-icon)]" />
+                        <span>
+                          {week.start_date ? new Date(week.start_date).toLocaleDateString() : 'N/A'} — {' '}
+                          {week.end_date ? new Date(week.end_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 1. LECTURES / MAIN CONTENT SECTION */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <BookOpen className="w-4 h-4 text-[var(--blue-glow)]" /> 📖 Lectures & Main Lessons ({lectureLessons.length})
+                    </h4>
+                    {lectureLessons.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic pl-2">No lecture lessons assigned to this week.</p>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {lectureLessons.map((lesson, idx) => (
+                          <LessonListItem
+                            key={lesson.id}
+                            id={lesson.id}
+                            courseId={courseId}
+                            title={lesson.title}
+                            description={lesson.description}
+                            orderIndex={idx}
+                            videoUrl={lesson.video_url}
+                            completed={progress >= Math.round(((lessons.indexOf(lesson) + 1) / lessons.length) * 100)}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Lecture Assignments */}
+                    {lectureAssignments.length > 0 && (
+                      <div className="space-y-3 pt-2">
+                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                          <FileCheck className="w-3.5 h-3.5 text-[#9180ff]" /> Lecture Assignments ({lectureAssignments.length})
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {lectureAssignments.map((a) => (
+                            <Link
+                              key={a.id}
+                              href={`/assignments/${a.id}`}
+                              className="block lms-card p-4 hover:border-[var(--cyan-border)] transition bg-[var(--bg-primary)]/40 border border-slate-800/80 rounded-xl"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <h5 className="font-semibold text-xs sm:text-sm text-white hover:text-[var(--cyan-glow)] transition">
+                                  {a.title}
+                                </h5>
+                                <Badge variant="blue" className="text-[10px] shrink-0 font-mono">
+                                  {a.max_score} pts
+                                </Badge>
+                              </div>
+                              {a.description && (
+                                <p className="text-[11px] text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
+                                  {a.description}
+                                </p>
+                              )}
+                              {a.due_date && (
+                                <p className="text-[11px] text-[var(--cyan-glow)] mt-3 font-medium flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5 text-[var(--blue-icon)]" />
+                                  Due: {new Date(a.due_date).toLocaleDateString()}
+                                </p>
+                              )}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. TUTORIAL COMPONENT (Rendered ONLY if has_tutorial is enabled for the course) */}
+                  {course.has_tutorial && (
+                    <div className="space-y-4 border-t border-amber-500/30 pt-5 bg-amber-500/5 p-4 rounded-xl">
+                      <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <GraduationCap className="w-4 h-4 text-amber-400" /> 🎓 Tutorial Component
+                      </h4>
+
+                      {/* Tutorial Lessons */}
+                      {tutorialLessons.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic pl-2">No tutorial lessons assigned to this week.</p>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {tutorialLessons.map((lesson, idx) => (
+                            <LessonListItem
+                              key={lesson.id}
+                              id={lesson.id}
+                              courseId={courseId}
+                              title={lesson.title}
+                              description={lesson.description}
+                              orderIndex={idx}
+                              videoUrl={lesson.video_url}
+                              completed={progress >= Math.round(((lessons.indexOf(lesson) + 1) / lessons.length) * 100)}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tutorial Assignments */}
+                      {tutorialAssignments.length > 0 && (
+                        <div className="space-y-3 pt-2">
+                          <p className="text-[11px] font-semibold text-amber-400/90 uppercase tracking-wider flex items-center gap-1">
+                            <FileCheck className="w-3.5 h-3.5 text-amber-400" /> Tutorial Assignments ({tutorialAssignments.length})
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {tutorialAssignments.map((a) => (
+                              <Link
+                                key={a.id}
+                                href={`/assignments/${a.id}`}
+                                className="block lms-card p-4 hover:border-amber-500/50 transition bg-[var(--bg-primary)]/40 border border-amber-500/20 rounded-xl"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <h5 className="font-semibold text-xs sm:text-sm text-white hover:text-amber-300 transition">
+                                    {a.title}
+                                  </h5>
+                                  <Badge variant="blue" className="text-[10px] shrink-0 font-mono">
+                                    {a.max_score} pts
+                                  </Badge>
+                                </div>
+                                {a.description && (
+                                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
+                                    {a.description}
+                                  </p>
+                                )}
+                                {a.due_date && (
+                                  <p className="text-[11px] text-amber-300 mt-3 font-medium flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                                    Due: {new Date(a.due_date).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
-                  <p className="text-[10px] text-[var(--cyan-glow)] mt-2 font-medium">
-                    Max Score: {a.max_score} pts &rarr;
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+
+                  {/* 3. LAB COMPONENT (Rendered ONLY if has_lab is enabled for the course) */}
+                  {course.has_lab && (
+                    <div className="space-y-4 border-t border-cyan-500/30 pt-5 bg-cyan-500/5 p-4 rounded-xl">
+                      <h4 className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Laptop className="w-4 h-4 text-cyan-400" /> 💻 Lab Component
+                      </h4>
+
+                      {/* Lab Lessons */}
+                      {labLessons.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic pl-2">No lab lessons assigned to this week.</p>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {labLessons.map((lesson, idx) => (
+                            <LessonListItem
+                              key={lesson.id}
+                              id={lesson.id}
+                              courseId={courseId}
+                              title={lesson.title}
+                              description={lesson.description}
+                              orderIndex={idx}
+                              videoUrl={lesson.video_url}
+                              completed={progress >= Math.round(((lessons.indexOf(lesson) + 1) / lessons.length) * 100)}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Lab Assignments */}
+                      {labAssignments.length > 0 && (
+                        <div className="space-y-3 pt-2">
+                          <p className="text-[11px] font-semibold text-cyan-400/90 uppercase tracking-wider flex items-center gap-1">
+                            <FileCheck className="w-3.5 h-3.5 text-cyan-400" /> Lab Assignments ({labAssignments.length})
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {labAssignments.map((a) => (
+                              <Link
+                                key={a.id}
+                                href={`/assignments/${a.id}`}
+                                className="block lms-card p-4 hover:border-cyan-500/50 transition bg-[var(--bg-primary)]/40 border border-cyan-500/20 rounded-xl"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <h5 className="font-semibold text-xs sm:text-sm text-white hover:text-cyan-300 transition">
+                                    {a.title}
+                                  </h5>
+                                  <Badge variant="blue" className="text-[10px] shrink-0 font-mono">
+                                    {a.max_score} pts
+                                  </Badge>
+                                </div>
+                                {a.description && (
+                                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
+                                    {a.description}
+                                  </p>
+                                )}
+                                {a.due_date && (
+                                  <p className="text-[11px] text-cyan-300 mt-3 font-medium flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                                    Due: {new Date(a.due_date).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Fallback Unassigned Content Section */}
+            {(unassignedLessons.length > 0 || unassignedAssignments.length > 0) && (
+              <div className="lms-card p-6 space-y-6 border border-amber-500/30 bg-amber-500/5 rounded-xl">
+                <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                  <h3 className="text-base font-bold text-amber-300 flex items-center gap-2">
+                    <Layers className="w-5 h-5" /> General / Unassigned Content
+                  </h3>
+                  <Badge variant="red" className="text-xs">
+                    {unassignedLessons.length} Lessons • {unassignedAssignments.length} Assignments
+                  </Badge>
+                </div>
+
+                {unassignedLessons.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <BookOpen className="w-4 h-4 text-[var(--blue-glow)]" /> Lessons
+                    </h4>
+                    <div className="space-y-2.5">
+                      {unassignedLessons.map((lesson, idx) => (
+                        <LessonListItem
+                          key={lesson.id}
+                          id={lesson.id}
+                          courseId={courseId}
+                          title={lesson.title}
+                          description={lesson.description}
+                          orderIndex={idx}
+                          videoUrl={lesson.video_url}
+                          completed={progress >= Math.round(((lessons.indexOf(lesson) + 1) / lessons.length) * 100)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {unassignedAssignments.length > 0 && (
+                  <div className="space-y-3 border-t border-amber-500/20 pt-4">
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <FileCheck className="w-4 h-4 text-[#9180ff]" /> Assignments
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {unassignedAssignments.map((a) => (
+                        <Link
+                          key={a.id}
+                          href={`/assignments/${a.id}`}
+                          className="block lms-card p-4 hover:border-[var(--cyan-border)] transition bg-[var(--bg-primary)]/40 border border-slate-800/80 rounded-xl"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <h5 className="font-semibold text-xs sm:text-sm text-white">
+                              {a.title}
+                            </h5>
+                            <Badge variant="blue" className="text-[10px] shrink-0 font-mono">
+                              {a.max_score} pts
+                            </Badge>
+                          </div>
+                          {a.description && (
+                            <p className="text-[11px] text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
+                              {a.description}
+                            </p>
+                          )}
+                          {a.due_date && (
+                            <p className="text-[11px] text-[var(--cyan-glow)] mt-3 font-medium flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-[var(--blue-icon)]" />
+                              Due: {new Date(a.due_date).toLocaleDateString()}
+                            </p>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modal to Add Lesson */}
@@ -374,7 +690,74 @@ export default function CourseDetailPage() {
         onClose={() => setIsLessonModalOpen(false)}
         title="Add New Lesson"
       >
-        <form onSubmit={handleCreateLesson} className="space-y-4">
+        <form onSubmit={handleCreateLesson} className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+          {courseWeeks.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                Assign to Week
+              </label>
+              <select
+                value={lessonWeekId}
+                onChange={(e) => setLessonWeekId(e.target.value)}
+                className="w-full bg-[var(--bg-primary)] border border-slate-700/80 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[var(--blue-border)]"
+              >
+                <option value="">-- No specific week --</option>
+                {courseWeeks.map((w) => (
+                  <option key={w.id} value={w.id}>{w.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1">Component Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="flex items-center justify-center gap-1.5 p-2 rounded-lg border border-slate-700 bg-slate-900 text-xs font-medium text-white cursor-pointer hover:border-[var(--blue-glow)]">
+                <input
+                  type="radio"
+                  name="lessonType"
+                  value="lecture"
+                  checked={lessonComponentType === 'lecture'}
+                  onChange={() => setLessonComponentType('lecture')}
+                  className="accent-[var(--blue-glow)]"
+                />
+                Lecture 📖
+              </label>
+              <label className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border text-xs font-medium ${
+                course?.has_tutorial
+                  ? 'border-slate-700 bg-slate-900 text-white cursor-pointer hover:border-amber-500/50'
+                  : 'border-slate-800 bg-slate-950 text-slate-600 cursor-not-allowed opacity-50'
+              }`}>
+                <input
+                  type="radio"
+                  name="lessonType"
+                  value="tutorial"
+                  disabled={!course?.has_tutorial}
+                  checked={lessonComponentType === 'tutorial'}
+                  onChange={() => setLessonComponentType('tutorial')}
+                  className="accent-amber-400"
+                />
+                Tutorial 🎓
+              </label>
+              <label className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border text-xs font-medium ${
+                course?.has_lab
+                  ? 'border-slate-700 bg-slate-900 text-white cursor-pointer hover:border-cyan-500/50'
+                  : 'border-slate-800 bg-slate-950 text-slate-600 cursor-not-allowed opacity-50'
+              }`}>
+                <input
+                  type="radio"
+                  name="lessonType"
+                  value="lab"
+                  disabled={!course?.has_lab}
+                  checked={lessonComponentType === 'lab'}
+                  onChange={() => setLessonComponentType('lab')}
+                  className="accent-cyan-400"
+                />
+                Lab 💻
+              </label>
+            </div>
+          </div>
+
           <Input
             label="Lesson Title"
             required
@@ -423,7 +806,74 @@ export default function CourseDetailPage() {
         onClose={() => setIsAssignmentModalOpen(false)}
         title="Create Course Assignment"
       >
-        <form onSubmit={handleCreateAssignment} className="space-y-4">
+        <form onSubmit={handleCreateAssignment} className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+          {courseWeeks.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                Assign to Week
+              </label>
+              <select
+                value={assignmentWeekId}
+                onChange={(e) => setAssignmentWeekId(e.target.value)}
+                className="w-full bg-[var(--bg-primary)] border border-slate-700/80 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[var(--blue-border)]"
+              >
+                <option value="">-- No specific week --</option>
+                {courseWeeks.map((w) => (
+                  <option key={w.id} value={w.id}>{w.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1">Component Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="flex items-center justify-center gap-1.5 p-2 rounded-lg border border-slate-700 bg-slate-900 text-xs font-medium text-white cursor-pointer hover:border-[var(--blue-glow)]">
+                <input
+                  type="radio"
+                  name="assignmentType"
+                  value="lecture"
+                  checked={assignmentComponentType === 'lecture'}
+                  onChange={() => setAssignmentComponentType('lecture')}
+                  className="accent-[var(--blue-glow)]"
+                />
+                Lecture 📖
+              </label>
+              <label className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border text-xs font-medium ${
+                course?.has_tutorial
+                  ? 'border-slate-700 bg-slate-900 text-white cursor-pointer hover:border-amber-500/50'
+                  : 'border-slate-800 bg-slate-950 text-slate-600 cursor-not-allowed opacity-50'
+              }`}>
+                <input
+                  type="radio"
+                  name="assignmentType"
+                  value="tutorial"
+                  disabled={!course?.has_tutorial}
+                  checked={assignmentComponentType === 'tutorial'}
+                  onChange={() => setAssignmentComponentType('tutorial')}
+                  className="accent-amber-400"
+                />
+                Tutorial 🎓
+              </label>
+              <label className={`flex items-center justify-center gap-1.5 p-2 rounded-lg border text-xs font-medium ${
+                course?.has_lab
+                  ? 'border-slate-700 bg-slate-900 text-white cursor-pointer hover:border-cyan-500/50'
+                  : 'border-slate-800 bg-slate-950 text-slate-600 cursor-not-allowed opacity-50'
+              }`}>
+                <input
+                  type="radio"
+                  name="assignmentType"
+                  value="lab"
+                  disabled={!course?.has_lab}
+                  checked={assignmentComponentType === 'lab'}
+                  onChange={() => setAssignmentComponentType('lab')}
+                  className="accent-cyan-400"
+                />
+                Lab 💻
+              </label>
+            </div>
+          </div>
+
           <Input
             label="Assignment Title"
             required

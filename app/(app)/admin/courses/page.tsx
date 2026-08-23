@@ -22,7 +22,9 @@ import {
   Search,
   Check,
   X,
+  Calendar,
 } from 'lucide-react'
+import { CourseContentManager } from '@/components/admin/CourseContentManager'
 
 interface Semester {
   id: string
@@ -54,6 +56,8 @@ interface CourseItem {
   category: string | null
   level: CourseLevel
   is_active: boolean
+  has_tutorial?: boolean
+  has_lab?: boolean
   created_at: string
   semester?: Semester
   doctor?: Doctor
@@ -82,9 +86,12 @@ export default function AdminCoursesPage() {
   const [levelInput, setLevelInput] = useState<CourseLevel>('beginner')
   const [imageUrlInput, setImageUrlInput] = useState('')
   const [isActiveInput, setIsActiveInput] = useState(true)
+  const [hasTutorialInput, setHasTutorialInput] = useState(false)
+  const [hasLabInput, setHasLabInput] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [managingContentCourseId, setManagingContentCourseId] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -149,6 +156,8 @@ export default function AdminCoursesPage() {
     setLevelInput('beginner')
     setImageUrlInput('')
     setIsActiveInput(true)
+    setHasTutorialInput(false)
+    setHasLabInput(false)
     if (semesters.length > 0) setSemesterIdInput(semesters[0].id)
     if (doctors.length > 0) setDoctorIdInput(doctors[0].id)
     setFormError(null)
@@ -164,6 +173,8 @@ export default function AdminCoursesPage() {
     setLevelInput(c.level || 'beginner')
     setImageUrlInput(c.image_url || c.thumbnail_url || '')
     setIsActiveInput(c.is_active)
+    setHasTutorialInput(!!c.has_tutorial)
+    setHasLabInput(!!c.has_lab)
     setSemesterIdInput(c.semester_id || '')
     setDoctorIdInput(c.doctor_id || '')
     setFormError(null)
@@ -192,6 +203,8 @@ export default function AdminCoursesPage() {
       image_url: imageUrlInput.trim() || null,
       thumbnail_url: imageUrlInput.trim() || null,
       is_active: isActiveInput,
+      has_tutorial: hasTutorialInput,
+      has_lab: hasLabInput,
     }
 
     let err: any = null
@@ -333,6 +346,18 @@ export default function AdminCoursesPage() {
                         <td className="p-4">
                           <p className="font-bold text-white text-sm">{c.title}</p>
                           <p className="text-[10px] text-slate-400">{c.category || 'General CS'}</p>
+                          <div className="flex gap-1.5 mt-1">
+                            {c.has_tutorial && (
+                              <span className="text-[9px] font-bold text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
+                                Tutorial (🎓)
+                              </span>
+                            )}
+                            {c.has_lab && (
+                              <span className="text-[9px] font-bold text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                                Lab (💻)
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4">
                           <p className="font-semibold text-slate-200">
@@ -359,6 +384,13 @@ export default function AdminCoursesPage() {
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setManagingContentCourseId(c.id)}
+                              className="p-1.5 rounded-lg text-[var(--blue-glow)] hover:text-white hover:bg-[var(--blue-glow)]/20 transition"
+                              title="Manage Content"
+                            >
+                              <Calendar className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => openEditModal(c)}
                               className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
@@ -496,6 +528,30 @@ export default function AdminCoursesPage() {
               onChange={(e) => setImageUrlInput(e.target.value)}
             />
 
+            <div className="p-3.5 rounded-xl bg-[var(--bg-primary)]/40 border border-[var(--blue-border)]/40 space-y-2">
+              <p className="text-xs font-bold text-white uppercase tracking-wider">Course Components</p>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasTutorialInput}
+                    onChange={(e) => setHasTutorialInput(e.target.checked)}
+                    className="w-4 h-4 accent-[var(--blue-glow)]"
+                  />
+                  <span className="text-xs text-slate-200">Has Tutorial (🎓)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasLabInput}
+                    onChange={(e) => setHasLabInput(e.target.checked)}
+                    className="w-4 h-4 accent-[var(--blue-glow)]"
+                  />
+                  <span className="text-xs text-slate-200">Has Lab (💻)</span>
+                </label>
+              </div>
+            </div>
+
             <label className="flex items-center gap-2.5 p-3 rounded-lg bg-[var(--bg-primary)]/40 border border-[var(--blue-border)]/40 cursor-pointer">
               <input
                 type="checkbox"
@@ -515,6 +571,15 @@ export default function AdminCoursesPage() {
               </Button>
             </div>
           </form>
+        </Modal>
+
+        <Modal
+          isOpen={!!managingContentCourseId}
+          onClose={() => setManagingContentCourseId(null)}
+          title="Manage Course Content"
+          maxWidth="max-w-4xl"
+        >
+          {managingContentCourseId && <CourseContentManager courseId={managingContentCourseId} />}
         </Modal>
       </div>
     </RoleGuard>

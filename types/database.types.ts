@@ -14,6 +14,7 @@ export type AnnouncementCategory = 'Urgent' | 'Update' | 'Notice' | 'Event' | 'E
 export type AnnouncementPriority = 'Low' | 'Medium' | 'High'
 export type AnnouncementStatus = 'Draft' | 'Published' | 'Archived'
 export type UserAccountStatus = 'unverified' | 'verified' | 'suspended'
+export type ChatRoomType = 'global' | 'level'
 
 export type Database = {
   public: {
@@ -272,6 +273,8 @@ export type Database = {
           department: string | null
           academic_year: number | null
           semester: number | null
+          has_tutorial: boolean
+          has_lab: boolean
           created_at: string
           updated_at: string
         }
@@ -291,6 +294,8 @@ export type Database = {
           department?: string | null
           academic_year?: number | null
           semester?: number | null
+          has_tutorial?: boolean
+          has_lab?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -310,6 +315,8 @@ export type Database = {
           department?: string | null
           academic_year?: number | null
           semester?: number | null
+          has_tutorial?: boolean
+          has_lab?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -323,35 +330,82 @@ export type Database = {
           }
         ]
       }
-      lessons: {
+      course_weeks: {
         Row: {
           id: string
           course_id: string
           title: string
-          description: string | null
-          content: string | null
-          video_url: string | null
+          start_date: string | null
+          end_date: string | null
           order_index: number
+          is_active: boolean
           created_at: string
         }
         Insert: {
           id?: string
           course_id: string
           title: string
-          description?: string | null
-          content?: string | null
-          video_url?: string | null
+          start_date?: string | null
+          end_date?: string | null
           order_index?: number
+          is_active?: boolean
           created_at?: string
         }
         Update: {
           id?: string
           course_id?: string
           title?: string
+          start_date?: string | null
+          end_date?: string | null
+          order_index?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_weeks_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      lessons: {
+        Row: {
+          id: string
+          course_id: string
+          week_id: string | null
+          title: string
+          description: string | null
+          content: string | null
+          video_url: string | null
+          order_index: number
+          component_type: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          course_id: string
+          week_id?: string | null
+          title: string
           description?: string | null
           content?: string | null
           video_url?: string | null
           order_index?: number
+          component_type?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          course_id?: string
+          week_id?: string | null
+          title?: string
+          description?: string | null
+          content?: string | null
+          video_url?: string | null
+          order_index?: number
+          component_type?: string
           created_at?: string
         }
         Relationships: [
@@ -360,6 +414,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "course_weeks"
             referencedColumns: ["id"]
           }
         ]
@@ -407,28 +468,34 @@ export type Database = {
         Row: {
           id: string
           course_id: string
+          week_id: string | null
           title: string
           description: string | null
           due_date: string | null
           max_score: number
+          component_type: string
           created_at: string
         }
         Insert: {
           id?: string
           course_id: string
+          week_id?: string | null
           title: string
           description?: string | null
           due_date?: string | null
           max_score?: number
+          component_type?: string
           created_at?: string
         }
         Update: {
           id?: string
           course_id?: string
+          week_id?: string | null
           title?: string
           description?: string | null
           due_date?: string | null
           max_score?: number
+          component_type?: string
           created_at?: string
         }
         Relationships: [
@@ -437,6 +504,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "course_weeks"
             referencedColumns: ["id"]
           }
         ]
@@ -694,6 +768,92 @@ export type Database = {
           {
             foreignKeyName: "announcements_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      chat_rooms: {
+        Row: {
+          id: string
+          name: string
+          type: ChatRoomType
+          level_id: string | null
+          description: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          type: ChatRoomType
+          level_id?: string | null
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          type?: ChatRoomType
+          level_id?: string | null
+          description?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_rooms_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          room_id: string
+          user_id: string
+          content: string
+          is_deleted: boolean
+          edited_at: string | null
+          reply_to_message_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          room_id: string
+          user_id: string
+          content: string
+          is_deleted?: boolean
+          edited_at?: string | null
+          reply_to_message_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          room_id?: string
+          user_id?: string
+          content?: string
+          is_deleted?: boolean
+          edited_at?: string | null
+          reply_to_message_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
