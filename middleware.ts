@@ -50,6 +50,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // ─── Admin Route Server-Side Authorization ────────────────────────────────
+  // Protect all /admin/** routes. This is the REAL security layer.
+  // RoleGuard in the client is only UX — it cannot be relied upon for security.
+  if (user && url.pathname.startsWith('/admin')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      // Non-admin user attempting to access an admin route
+      url.pathname = '/home'
+      return NextResponse.redirect(url)
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   return supabaseResponse
 }
 

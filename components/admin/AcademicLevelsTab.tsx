@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import {
+  createLevelAction,
+  updateLevelAction,
+  deleteLevelAction,
+} from '@/app/(app)/admin/levelActions'
+import {
   Layers,
   PlusCircle,
   Edit2,
@@ -100,35 +105,30 @@ export function AcademicLevelsTab() {
       level_number: Number(numberInput),
     }
 
-    let err: any = null
-
-    if (editingLevel) {
-      const { error } = await supabase.from('levels').update(payload).eq('id', editingLevel.id)
-      err = error
-    } else {
-      const { error } = await supabase.from('levels').insert(payload)
-      err = error
-    }
-
-    setSubmitting(false)
-
-    if (err) {
-      setFormError(err.message)
-    } else {
+    try {
+      if (editingLevel) {
+        await updateLevelAction(editingLevel.id, payload)
+      } else {
+        await createLevelAction(payload)
+      }
       setIsModalOpen(false)
       showToast('success', editingLevel ? 'Level updated successfully!' : 'Level created successfully!')
       loadLevels()
+    } catch (err: any) {
+      setFormError(err.message || 'Operation failed.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleDeleteLevel = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}? This will cascade delete associated semesters.`)) return
-    const { error } = await supabase.from('levels').delete().eq('id', id)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await deleteLevelAction(id)
       showToast('success', `${name} deleted.`)
       loadLevels()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete level.')
     }
   }
 

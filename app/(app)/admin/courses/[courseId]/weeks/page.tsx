@@ -10,6 +10,12 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import {
+  createWeekAction,
+  updateWeekAction,
+  deleteWeekAction,
+  reorderWeeksAction,
+} from '../../../contentActions'
+import {
   Calendar,
   PlusCircle,
   Edit2,
@@ -119,36 +125,30 @@ export default function AdminCourseWeeksPage() {
       order_index: editingWeek ? editingWeek.order_index : weeks.length,
     }
 
-    let err: any = null
-
-    if (editingWeek) {
-      const { error } = await supabase.from('course_weeks').update(payload).eq('id', editingWeek.id)
-      err = error
-    } else {
-      const { error } = await supabase.from('course_weeks').insert(payload)
-      err = error
-    }
-
-    setSubmitting(false)
-
-    if (err) {
-      setFormError(err.message)
-    } else {
+    try {
+      if (editingWeek) {
+        await updateWeekAction(editingWeek.id, payload)
+      } else {
+        await createWeekAction(payload)
+      }
       setIsModalOpen(false)
       showToast('success', editingWeek ? 'Week updated successfully!' : 'Week created successfully!')
       loadData()
+    } catch (err: any) {
+      setFormError(err.message || 'Operation failed.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleDeleteWeek = async (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"? This will also unassign any associated lessons and assignments.`)) return
-    
-    const { error } = await supabase.from('course_weeks').delete().eq('id', id)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await deleteWeekAction(id)
       showToast('success', `Week "${title}" deleted.`)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete week.')
     }
   }
 
@@ -168,11 +168,16 @@ export default function AdminCourseWeeksPage() {
     newWeeks.sort((a, b) => a.order_index - b.order_index)
     setWeeks(newWeeks)
 
-    // DB updates
-    await Promise.all([
-      supabase.from('course_weeks').update({ order_index: newWeeks[index].order_index }).eq('id', newWeeks[index].id),
-      supabase.from('course_weeks').update({ order_index: newWeeks[targetIndex].order_index }).eq('id', newWeeks[targetIndex].id)
-    ])
+    // DB updates via server action
+    try {
+      await reorderWeeksAction(
+        newWeeks[index].id, newWeeks[index].order_index,
+        newWeeks[targetIndex].id, newWeeks[targetIndex].order_index,
+      )
+    } catch {
+      // Reload to get correct state if reorder fails
+      loadData()
+    }
   }
 
   const showToast = (type: 'success' | 'error', text: string) => {

@@ -1,27 +1,31 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { UserRole } from '@/types/database.types'
 
+/**
+ * Updates the role of a target user.
+ * SECURITY: Server-side only. Requires admin role on the calling user.
+ * The caller is identified by their session cookie — not any client-supplied value.
+ */
 export async function updateUserRoleAction(targetUserId: string, newRole: UserRole) {
-  const supabase = await createClient()
+  // 1. Verify caller is admin (throws if not)
+  const { userId: callerUserId } = await requireAdmin()
 
-  // Verify caller is admin
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
-
-  const { data: callerProfile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!callerProfile || callerProfile.role !== 'admin') {
-    throw new Error('Forbidden: Only administrators can update user roles.')
+  // 2. Prevent self-promotion or self-demotion via this action
+  //    (Admins changing their own role could be used to lock everyone out)
+  if (callerUserId === targetUserId) {
+    throw new Error('Forbidden: Administrators cannot change their own role through this interface.')
   }
 
-  // Update target user profile using service role admin client
+  // 3. Validate the new role is a known safe value
+  const allowedRoles: UserRole[] = ['student', 'teacher', 'admin']
+  if (!allowedRoles.includes(newRole)) {
+    throw new Error(`Forbidden: Invalid role value "${newRole}".`)
+  }
+
+  // 4. Perform the update using the admin client (bypasses RLS intentionally)
   const adminClient = createAdminClient()
   const { error } = await adminClient
     .from('profiles')
@@ -34,3 +38,4 @@ export async function updateUserRoleAction(targetUserId: string, newRole: UserRo
 
   return { success: true }
 }
+

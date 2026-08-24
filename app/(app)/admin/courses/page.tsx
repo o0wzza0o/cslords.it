@@ -11,6 +11,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { CourseLevel } from '@/types/database.types'
 import {
+  createCourseAction,
+  updateCourseAction,
+  deleteCourseAction,
+} from '../courseActions'
+import {
   BookOpen,
   PlusCircle,
   Edit2,
@@ -207,35 +212,30 @@ export default function AdminCoursesPage() {
       has_lab: hasLabInput,
     }
 
-    let err: any = null
-
-    if (editingCourse) {
-      const { error } = await supabase.from('courses').update(payload).eq('id', editingCourse.id)
-      err = error
-    } else {
-      const { error } = await supabase.from('courses').insert(payload)
-      err = error
-    }
-
-    setSubmitting(false)
-
-    if (err) {
-      setFormError(err.message)
-    } else {
+    try {
+      if (editingCourse) {
+        await updateCourseAction(editingCourse.id, payload)
+      } else {
+        await createCourseAction(payload)
+      }
       setIsModalOpen(false)
       showToast('success', editingCourse ? 'Course updated successfully!' : 'Course published successfully!')
       loadData()
+    } catch (err: any) {
+      setFormError(err.message || 'Operation failed.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleDeleteCourse = async (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete course "${title}"?`)) return
-    const { error } = await supabase.from('courses').delete().eq('id', id)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await deleteCourseAction(id)
       showToast('success', `Course "${title}" deleted.`)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete course.')
     }
   }
 

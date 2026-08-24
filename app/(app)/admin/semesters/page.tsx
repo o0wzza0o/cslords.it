@@ -11,6 +11,12 @@ import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EnrollmentMode } from '@/types/database.types'
 import {
+  createSemesterAction,
+  updateSemesterAction,
+  toggleSemesterModeAction,
+  deleteSemesterAction,
+} from '../semesterActions'
+import {
   Clock,
   PlusCircle,
   Edit2,
@@ -132,50 +138,41 @@ export default function SemestersPage() {
       enrollment_mode: modeInput,
     }
 
-    let err: any = null
-
-    if (editingSemester) {
-      const { error } = await supabase.from('semesters').update(payload).eq('id', editingSemester.id)
-      err = error
-    } else {
-      const { error } = await supabase.from('semesters').insert(payload)
-      err = error
-    }
-
-    setSubmitting(false)
-
-    if (err) {
-      setFormError(err.message)
-    } else {
+    try {
+      if (editingSemester) {
+        await updateSemesterAction(editingSemester.id, payload)
+      } else {
+        await createSemesterAction(payload)
+      }
       setIsModalOpen(false)
       showToast('success', editingSemester ? 'Semester updated!' : 'Semester created!')
       loadData()
+    } catch (err: any) {
+      setFormError(err.message || 'Operation failed.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleToggleMode = async (sem: Semester) => {
     const nextMode: EnrollmentMode = sem.enrollment_mode === 'Automatic' ? 'Manual' : 'Automatic'
-    const { error } = await supabase
-      .from('semesters')
-      .update({ enrollment_mode: nextMode })
-      .eq('id', sem.id)
-
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await toggleSemesterModeAction(sem.id, nextMode)
       showToast('success', `${sem.level?.name || ''} - ${sem.name} mode switched to ${nextMode}`)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to toggle mode.')
     }
   }
 
   const handleDeleteSemester = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}?`)) return
-    const { error } = await supabase.from('semesters').delete().eq('id', id)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await deleteSemesterAction(id)
       showToast('success', `${name} deleted.`)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete semester.')
     }
   }
 

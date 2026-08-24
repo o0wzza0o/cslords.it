@@ -9,6 +9,12 @@ import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { academicYearLabel } from '@/lib/utils/academic'
 import {
+  createAcademicRuleAction,
+  updateAcademicRuleAction,
+  deleteAcademicRuleAction,
+  reclassifyStudentsAction,
+} from '@/app/(app)/admin/levelActions'
+import {
   GraduationCap,
   PlusCircle,
   Search,
@@ -184,50 +190,41 @@ export function AcademicRulesTab() {
       updated_at: new Date().toISOString(),
     }
 
-    let err: any = null
-
-    if (editingRule) {
-      const { error } = await supabase.from('academic_rules').update(payload).eq('id', editingRule.id)
-      err = error
-    } else {
-      const { error } = await supabase.from('academic_rules').insert(payload)
-      err = error
-    }
-
-    setSubmitting(false)
-
-    if (err) {
-      setFormError(err.message)
-    } else {
+    try {
+      if (editingRule) {
+        await updateAcademicRuleAction(editingRule.id, payload)
+      } else {
+        await createAcademicRuleAction(payload)
+      }
       setIsModalOpen(false)
       showToast('success', editingRule ? 'Rule updated successfully!' : 'Rule created successfully!')
       loadData()
+    } catch (err: any) {
+      setFormError(err.message || 'Operation failed.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleDeleteRule = async (id: string, prefix: string) => {
     if (!confirm(`Are you sure you want to delete rule for prefix ${prefix}?`)) return
-    const { error } = await supabase.from('academic_rules').delete().eq('id', id)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await deleteAcademicRuleAction(id)
       showToast('success', `Rule for prefix ${prefix} deleted.`)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete rule.')
     }
   }
 
   const handleToggleRuleStatus = async (rule: AcademicRule) => {
     const nextStatus = !rule.is_enabled
-    const { error } = await supabase
-      .from('academic_rules')
-      .update({ is_enabled: nextStatus, updated_at: new Date().toISOString() })
-      .eq('id', rule.id)
-
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await updateAcademicRuleAction(rule.id, { is_enabled: nextStatus, updated_at: new Date().toISOString() })
       showToast('success', `Rule prefix ${rule.prefix} ${nextStatus ? 'enabled' : 'disabled'}.`)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to toggle rule.')
     }
   }
 
@@ -238,6 +235,15 @@ export function AcademicRulesTab() {
     try {
       const activeRules = rules.filter((r) => r.is_enabled)
 
+      // Build the classification updates client-side (read-only)
+      // The actual profile updates and RPC calls happen server-side
+      const updates: Array<{
+        studentId: string
+        studentDbId: string
+        levelId: string | null
+        academicYear: number | null
+      }> = []
+
       for (const p of profiles) {
         if (!p.email || !p.email.includes('@acu.edu.eg')) continue
         let extractedId = p.student_id
@@ -245,7 +251,6 @@ export function AcademicRulesTab() {
           const localPart = p.email.split('@')[0]
           extractedId = localPart.split('.')[0]
         }
-
         if (!extractedId) continue
 
         const matched = activeRules
@@ -253,19 +258,16 @@ export function AcademicRulesTab() {
           .sort((a, b) => b.prefix.length - a.prefix.length)[0]
 
         if (matched) {
-          await supabase
-            .from('profiles')
-            .update({
-              student_id: extractedId,
-              level_id: matched.level_id,
-              academic_year: matched.level?.level_number || matched.academic_year,
-            })
-            .eq('id', p.id)
-
-          await supabase.rpc('auto_enroll_student', { p_student_id: p.id })
+          updates.push({
+            studentId: extractedId,
+            studentDbId: p.id,
+            levelId: matched.level_id,
+            academicYear: matched.level?.level_number || matched.academic_year,
+          })
         }
       }
 
+      await reclassifyStudentsAction(updates)
       showToast('success', 'All student profiles re-classified successfully!')
       loadData()
     } catch (err: any) {

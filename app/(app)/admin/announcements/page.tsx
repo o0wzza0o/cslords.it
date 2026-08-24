@@ -8,6 +8,14 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import {
+  createAnnouncementAction,
+  updateAnnouncementAction,
+  deleteAnnouncementAction,
+  toggleAnnouncementPinAction,
+  toggleAnnouncementPublishAction,
+} from '../announcementActions'
+import { AnnouncementStatus } from '@/types/database.types'
+import {
   Megaphone,
   PlusCircle,
   Edit,
@@ -90,27 +98,33 @@ export default function AdminAnnouncementsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this announcement?')) return
-    const { error } = await supabase.from('announcements').delete().eq('id', id)
-    if (!error) loadAnnouncements()
+    try {
+      await deleteAnnouncementAction(id)
+      loadAnnouncements()
+    } catch (err: any) {
+      // silently reload on error
+      console.error(err)
+    }
   }
 
   const handleTogglePin = async (item: Announcement) => {
-    const { error } = await supabase
-      .from('announcements')
-      .update({ pinned: !item.pinned })
-      .eq('id', item.id)
-    if (!error) loadAnnouncements()
+    try {
+      await toggleAnnouncementPinAction(item.id, !item.pinned)
+      loadAnnouncements()
+    } catch (err: any) {
+      console.error(err)
+    }
   }
 
   const handleTogglePublish = async (item: Announcement) => {
-    const newStatus = item.status === 'Published' ? 'Draft' : 'Published'
+    const newStatus: AnnouncementStatus = item.status === 'Published' ? 'Draft' : 'Published'
     const newPublishedDate = newStatus === 'Published' ? new Date().toISOString() : null
-    
-    const { error } = await supabase
-      .from('announcements')
-      .update({ status: newStatus, published_date: newPublishedDate })
-      .eq('id', item.id)
-    if (!error) loadAnnouncements()
+    try {
+      await toggleAnnouncementPublishAction(item.id, newStatus, newPublishedDate)
+      loadAnnouncements()
+    } catch (err: any) {
+      console.error(err)
+    }
   }
 
   const handlePreview = (item: Announcement) => {
@@ -121,9 +135,6 @@ export default function AdminAnnouncementsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
     const payload = {
       title,
@@ -134,20 +145,23 @@ export default function AdminAnnouncementsPage() {
       image_url: imageUrl || null,
       external_url: externalUrl || null,
       pinned,
-      author_id: user.id,
-      published_date: status === 'Published' ? new Date().toISOString() : null
+      published_date: status === 'Published' ? new Date().toISOString() : null,
     }
 
-    if (editingId) {
-      await supabase.from('announcements').update(payload).eq('id', editingId)
-    } else {
-      await supabase.from('announcements').insert(payload)
+    try {
+      if (editingId) {
+        await updateAnnouncementAction(editingId, payload)
+      } else {
+        await createAnnouncementAction(payload)
+      }
+      setIsModalOpen(false)
+      resetForm()
+      loadAnnouncements()
+    } catch (err: any) {
+      console.error(err)
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setIsSubmitting(false)
-    setIsModalOpen(false)
-    resetForm()
-    loadAnnouncements()
   }
 
   const getCategoryColor = (cat: string) => {

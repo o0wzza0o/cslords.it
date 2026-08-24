@@ -8,6 +8,10 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import {
+  runAutoEnrollmentAction,
+  deleteEnrollmentAction,
+} from '../enrollmentActions'
+import {
   BookCheck,
   RefreshCw,
   ArrowLeft,
@@ -88,18 +92,8 @@ export default function AdminEnrollmentsPage() {
     setIsAutoEnrolling(true)
 
     try {
-      // Fetch all student profiles
-      const { data: students } = await supabase.from('profiles').select('id').eq('role', 'student')
-      let totalCount = 0
-
-      if (students) {
-        for (const st of students) {
-          const { data: res } = await supabase.rpc('auto_enroll_student', { p_student_id: st.id })
-          totalCount += Number(res || 0)
-        }
-      }
-
-      showToast('success', `Batch auto-enrollment complete! ${totalCount} course assignments processed.`)
+      const result = await runAutoEnrollmentAction()
+      showToast('success', `Batch auto-enrollment complete! ${result.totalProcessed} course assignments processed.`)
       loadData()
     } catch (err: any) {
       showToast('error', err.message || 'Auto-enrollment failed')
@@ -110,12 +104,12 @@ export default function AdminEnrollmentsPage() {
 
   const handleDeleteEnrollment = async (id: string, studentName: string, courseTitle: string) => {
     if (!confirm(`Remove ${studentName}'s enrollment in ${courseTitle}?`)) return
-    const { error } = await supabase.from('student_courses').delete().eq('id', id)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      await deleteEnrollmentAction(id)
       showToast('success', 'Enrollment record removed.')
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to remove enrollment.')
     }
   }
 

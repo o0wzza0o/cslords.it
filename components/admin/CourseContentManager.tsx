@@ -8,6 +8,18 @@ import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Badge } from '@/components/ui/Badge'
 import {
+  createWeekAction,
+  updateWeekAction,
+  deleteWeekAction,
+  reorderWeeksAction,
+  createLessonAction,
+  updateLessonAction,
+  deleteLessonAction,
+  createAssignmentAction,
+  updateAssignmentAction,
+  deleteAssignmentAction,
+} from '@/app/(app)/admin/contentActions'
+import {
   Calendar,
   PlusCircle,
   Edit2,
@@ -143,25 +155,31 @@ export function CourseContentManager({ courseId }: CourseContentManagerProps) {
       order_index: editingWeek ? editingWeek.order_index : weeks.length,
     }
 
-    const { error } = editingWeek 
-      ? await supabase.from('course_weeks').update(payload).eq('id', editingWeek.id)
-      : await supabase.from('course_weeks').insert(payload)
-
-    setSubmitting(false)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      if (editingWeek) {
+        await updateWeekAction(editingWeek.id, payload)
+      } else {
+        await createWeekAction(payload)
+      }
       showToast('success', editingWeek ? 'Week updated' : 'Week created')
       setIsWeekModalOpen(false)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Operation failed')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const deleteWeek = async (id: string) => {
     if (!confirm('Delete this week? This will unassign its lessons and assignments.')) return
-    const { error } = await supabase.from('course_weeks').delete().eq('id', id)
-    if (error) showToast('error', error.message)
-    else { showToast('success', 'Week deleted'); loadData() }
+    try {
+      await deleteWeekAction(id)
+      showToast('success', 'Week deleted')
+      loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete week')
+    }
   }
 
   const moveWeek = async (index: number, direction: 'up' | 'down') => {
@@ -177,10 +195,14 @@ export function CourseContentManager({ courseId }: CourseContentManagerProps) {
     newWeeks.sort((a, b) => a.order_index - b.order_index)
     setWeeks(newWeeks)
 
-    await Promise.all([
-      supabase.from('course_weeks').update({ order_index: newWeeks[index].order_index }).eq('id', newWeeks[index].id),
-      supabase.from('course_weeks').update({ order_index: newWeeks[targetIdx].order_index }).eq('id', newWeeks[targetIdx].id)
-    ])
+    try {
+      await reorderWeeksAction(
+        newWeeks[index].id, newWeeks[index].order_index,
+        newWeeks[targetIdx].id, newWeeks[targetIdx].order_index,
+      )
+    } catch {
+      loadData()
+    }
   }
 
   // ---- LESSON ACTIONS ----
@@ -199,7 +221,6 @@ export function CourseContentManager({ courseId }: CourseContentManagerProps) {
     e.preventDefault()
     setSubmitting(true)
 
-    // Backend validation: check if tutorial or lab is disabled
     if (lessonComponentType === 'tutorial' && !course?.has_tutorial) {
       showToast('error', 'Tutorial is disabled for this course.')
       setSubmitting(false)
@@ -222,25 +243,31 @@ export function CourseContentManager({ courseId }: CourseContentManagerProps) {
       order_index: editingLesson ? editingLesson.order_index : lessons.length,
     }
 
-    const { error } = editingLesson
-      ? await supabase.from('lessons').update(payload).eq('id', editingLesson.id)
-      : await supabase.from('lessons').insert(payload)
-
-    setSubmitting(false)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      if (editingLesson) {
+        await updateLessonAction(editingLesson.id, payload)
+      } else {
+        await createLessonAction(payload)
+      }
       showToast('success', editingLesson ? 'Lesson updated' : 'Lesson created')
       setIsLessonModalOpen(false)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Operation failed')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const deleteLesson = async (id: string) => {
     if (!confirm('Delete this lesson?')) return
-    const { error } = await supabase.from('lessons').delete().eq('id', id)
-    if (error) showToast('error', error.message)
-    else { showToast('success', 'Lesson deleted'); loadData() }
+    try {
+      await deleteLessonAction(id)
+      showToast('success', 'Lesson deleted')
+      loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete lesson')
+    }
   }
 
   // ---- ASSIGNMENT ACTIONS ----
@@ -259,7 +286,6 @@ export function CourseContentManager({ courseId }: CourseContentManagerProps) {
     e.preventDefault()
     setSubmitting(true)
 
-    // Backend validation: check if tutorial or lab is disabled
     if (assignmentComponentType === 'tutorial' && !course?.has_tutorial) {
       showToast('error', 'Tutorial is disabled for this course.')
       setSubmitting(false)
@@ -281,25 +307,31 @@ export function CourseContentManager({ courseId }: CourseContentManagerProps) {
       max_score: assignmentScore,
     }
 
-    const { error } = editingAssignment
-      ? await supabase.from('assignments').update(payload).eq('id', editingAssignment.id)
-      : await supabase.from('assignments').insert(payload)
-
-    setSubmitting(false)
-    if (error) {
-      showToast('error', error.message)
-    } else {
+    try {
+      if (editingAssignment) {
+        await updateAssignmentAction(editingAssignment.id, payload)
+      } else {
+        await createAssignmentAction(payload)
+      }
       showToast('success', editingAssignment ? 'Assignment updated' : 'Assignment created')
       setIsAssignmentModalOpen(false)
       loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Operation failed')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const deleteAssignment = async (id: string) => {
     if (!confirm('Delete this assignment?')) return
-    const { error } = await supabase.from('assignments').delete().eq('id', id)
-    if (error) showToast('error', error.message)
-    else { showToast('success', 'Assignment deleted'); loadData() }
+    try {
+      await deleteAssignmentAction(id)
+      showToast('success', 'Assignment deleted')
+      loadData()
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete assignment')
+    }
   }
 
   if (loading) return <Skeleton className="h-96 w-full rounded-xl" />
