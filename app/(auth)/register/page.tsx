@@ -122,7 +122,7 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <form onSubmit={handleRegister} className="space-y-5">
+      <form suppressHydrationWarning onSubmit={handleRegister} className="space-y-5">
         <Input
           label="Full Name"
           type="text"
@@ -158,10 +158,10 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <div className="mt-6 text-center border-t border-slate-700/60 pt-6">
-        <p className="text-xs text-[var(--text-secondary)]">
+      <div suppressHydrationWarning className="mt-6 text-center border-t border-slate-700/60 pt-6">
+        <p suppressHydrationWarning className="text-xs text-[var(--text-secondary)]">
           Already registered?{' '}
-          <Link href="/login" className="text-[var(--blue-glow)] font-semibold hover:underline">
+          <Link suppressHydrationWarning href="/login" className="text-[var(--blue-glow)] font-semibold hover:underline">
             Sign in here
           </Link>
         </p>

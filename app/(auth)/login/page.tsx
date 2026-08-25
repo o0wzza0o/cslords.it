@@ -81,7 +81,7 @@ export default function LoginPage() {
 
   return (
     <div suppressHydrationWarning className="lms-card p-8 shadow-[0_0_30px_rgba(46,111,217,0.2)]">
-      <div className="text-center mb-8">
+      <div suppressHydrationWarning className="text-center mb-8">
         <img
           src="/logo.png"
           alt="Cs Lords Logo"
@@ -94,18 +94,18 @@ export default function LoginPage() {
       </div>
 
       {error && (
-        <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/40 text-red-400 text-xs font-medium text-center">
+        <div suppressHydrationWarning className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/40 text-red-400 text-xs font-medium text-center">
           {error}
         </div>
       )}
 
       {resetMessage && (
-        <div className="mb-6 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 text-xs font-medium text-center">
+        <div suppressHydrationWarning className="mb-6 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 text-xs font-medium text-center">
           {resetMessage}
         </div>
       )}
 
-      <form onSubmit={handleLogin} className="space-y-5">
+      <form suppressHydrationWarning onSubmit={handleLogin} className="space-y-5">
         <Input
           label="Email Address"
           type="email"
@@ -115,7 +115,7 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        <div>
+        <div suppressHydrationWarning>
           <Input
             label="Password"
             type="password"
@@ -124,8 +124,9 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <div className="flex justify-end mt-1.5">
+          <div suppressHydrationWarning className="flex justify-end mt-1.5">
             <button
+              suppressHydrationWarning
               type="button"
               onClick={handleResetPassword}
               disabled={isResetting}
@@ -141,10 +142,10 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="mt-6 text-center border-t border-slate-700/60 pt-6">
-        <p className="text-xs text-[var(--text-secondary)]">
+      <div suppressHydrationWarning className="mt-6 text-center border-t border-slate-700/60 pt-6">
+        <p suppressHydrationWarning className="text-xs text-[var(--text-secondary)]">
           Don't have an account?{' '}
-          <Link href="/register" className="text-[var(--blue-glow)] font-semibold hover:underline">
+          <Link suppressHydrationWarning href="/register" className="text-[var(--blue-glow)] font-semibold hover:underline">
             Register here
           </Link>
         </p>
