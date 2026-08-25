@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}${next}`)
     }
 
-    // Verification failed
+    const errorMsg = error?.message || 'Verification link expired or invalid'
     return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error.message)}`
+      `${origin}/login?error=${encodeURIComponent(errorMsg)}`
     )
   }
 
@@ -67,8 +67,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}${next}`)
     }
 
+    const errorMsg = error?.message || 'Failed to exchange authorization code'
     return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error.message)}`
+      `${origin}/login?error=${encodeURIComponent(errorMsg)}`
     )
   }
 
