@@ -97,7 +97,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="lms-card p-8 shadow-[0_0_30px_rgba(46,111,217,0.2)]">
+    <div suppressHydrationWarning className="lms-card p-8 shadow-[0_0_30px_rgba(46,111,217,0.2)]">
       <div className="text-center mb-8">
         <img
           src="/logo.png"

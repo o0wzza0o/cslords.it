@@ -8,7 +8,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, className = '', ...props }, ref) => {
     return (
-      <div className="w-full">
+      <div suppressHydrationWarning className="w-full">
         {label && (
           <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
             {label}

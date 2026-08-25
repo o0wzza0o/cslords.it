@@ -46,7 +46,7 @@ function ConfirmContent() {
   }, [searchParams, router])
 
   return (
-    <div className="lms-card p-10 shadow-[0_0_40px_rgba(46,111,217,0.2)] flex flex-col items-center text-center gap-6">
+    <div suppressHydrationWarning className="lms-card p-10 shadow-[0_0_40px_rgba(46,111,217,0.2)] flex flex-col items-center text-center gap-6">
       <img src="/logo.png" alt="Cs Lords Logo" className="w-14 h-14 object-contain drop-shadow-[0_0_15px_rgba(30,144,255,0.6)]" />
 
       {status === 'loading' && (
@@ -103,7 +103,7 @@ function ConfirmContent() {
 
 function LoadingCard() {
   return (
-    <div className="lms-card p-10 shadow-[0_0_40px_rgba(46,111,217,0.2)] flex flex-col items-center text-center gap-6">
+    <div suppressHydrationWarning className="lms-card p-10 shadow-[0_0_40px_rgba(46,111,217,0.2)] flex flex-col items-center text-center gap-6">
       <img src="/logo.png" alt="Cs Lords Logo" className="w-14 h-14 object-contain drop-shadow-[0_0_15px_rgba(30,144,255,0.6)]" />
       <div className="relative flex items-center justify-center w-16 h-16">
         <span className="absolute inset-0 rounded-full border-2 border-[var(--blue-border)]/30" />

@@ -136,7 +136,7 @@ export default function AuditLogsAdminPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div suppressHydrationWarning className="space-y-6 p-6">
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 backdrop-blur-xl">
         <div className="flex items-center gap-3">
