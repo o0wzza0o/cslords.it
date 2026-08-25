@@ -12,6 +12,7 @@ import { Users, Shield, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-reac
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<any[]>([])
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -23,6 +24,11 @@ export default function UserManagementPage() {
 
   async function loadUsers() {
     setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setCurrentUserId(user.id)
+    }
+
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -37,11 +43,15 @@ export default function UserManagementPage() {
     setStatusMsg(null)
 
     try {
-      await updateUserRoleAction(targetUserId, newRole)
-      setStatusMsg({ type: 'success', text: 'User role updated successfully!' })
-      setUsers((prev) =>
-        prev.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : u))
-      )
+      const res = await updateUserRoleAction(targetUserId, newRole)
+      if (res.success) {
+        setStatusMsg({ type: 'success', text: 'User role updated successfully!' })
+        setUsers((prev) =>
+          prev.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : u))
+        )
+      } else {
+        setStatusMsg({ type: 'error', text: res.error || 'Failed to update user role.' })
+      }
     } catch (err: any) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to update user role.' })
     } finally {
@@ -109,6 +119,11 @@ export default function UserManagementPage() {
                             {u.full_name?.charAt(0) || u.email.charAt(0)}
                           </div>
                           <span>{u.full_name || 'User'}</span>
+                          {u.id === currentUserId && (
+                            <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30">
+                              You
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="p-4 text-slate-400">{u.email}</td>
@@ -129,18 +144,24 @@ export default function UserManagementPage() {
                         {new Date(u.created_at).toLocaleDateString()}
                       </td>
                       <td className="p-4 text-right">
-                        <select
-                          disabled={updatingId === u.id}
-                          value={u.role}
-                          onChange={(e) =>
-                            handleRoleChange(u.id, e.target.value as UserRole)
-                          }
-                          className="bg-[var(--bg-primary)] border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-400 disabled:opacity-50"
-                        >
-                          <option value="student">Student</option>
-                          <option value="teacher">Teacher</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        {u.id === currentUserId ? (
+                          <span className="text-[11px] text-slate-500 italic">
+                            (Current User)
+                          </span>
+                        ) : (
+                          <select
+                            disabled={updatingId === u.id}
+                            value={u.role}
+                            onChange={(e) =>
+                              handleRoleChange(u.id, e.target.value as UserRole)
+                            }
+                            className="bg-[var(--bg-primary)] border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-400 disabled:opacity-50"
+                          >
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        )}
                       </td>
                     </tr>
                   ))}
