@@ -1,6 +1,24 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { headers } from 'next/headers'
+
+async function getRealClientIp(): Promise<string> {
+  try {
+    const reqHeaders = await headers()
+    const forwardedFor = reqHeaders.get('x-forwarded-for')
+    if (forwardedFor) {
+      return forwardedFor.split(',')[0].trim()
+    }
+    const realIp = reqHeaders.get('x-real-ip') || reqHeaders.get('cf-connecting-ip')
+    if (realIp) {
+      return realIp.trim()
+    }
+  } catch (e) {
+    // Background context fallback
+  }
+  return '127.0.0.1'
+}
 
 export interface AuditEventPayload {
   tableName: string
@@ -23,6 +41,7 @@ export interface AuditEventPayload {
 export async function logAuditEvent(payload: AuditEventPayload): Promise<string | null> {
   try {
     const adminSupabase = createAdminClient()
+    const detectedIp = payload.ipAddress || (await getRealClientIp())
 
     const { data, error } = await (adminSupabase as any)
       .from('audit_logs')
@@ -31,7 +50,7 @@ export async function logAuditEvent(payload: AuditEventPayload): Promise<string 
         operation: payload.operation,
         user_id: payload.userId || null,
         user_email: payload.userEmail || null,
-        ip_address: payload.ipAddress || '127.0.0.1',
+        ip_address: detectedIp,
         endpoint: payload.endpoint || null,
         old_values: payload.oldValues ? payload.oldValues : null,
         new_values: payload.newValues ? payload.newValues : null,
