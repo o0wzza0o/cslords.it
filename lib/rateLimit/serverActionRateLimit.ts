@@ -134,5 +134,13 @@ export async function withMultiFactorRateLimit<T>(
     }
   }
 
-  return fn()
+  try {
+    const data = await fn()
+    return { success: true, data }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || 'An unexpected error occurred during operation execution.',
+    }
+  }
 }
