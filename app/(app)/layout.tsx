@@ -25,10 +25,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     checkStatus()
   }, [pathname, router, supabase])
   return (
-    <div className="min-h-screen flex flex-col bg-transparent">
+    <div suppressHydrationWarning className="min-h-screen flex flex-col bg-transparent">
       <Navbar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full transition-all">
+      <div suppressHydrationWarning className="flex-1 flex flex-col min-w-0">
+        <main suppressHydrationWarning className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full transition-all">
           {children}
         </main>
       </div>

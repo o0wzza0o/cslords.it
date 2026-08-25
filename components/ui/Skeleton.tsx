@@ -7,6 +7,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
+      suppressHydrationWarning
       className={`animate-pulse bg-[var(--bg-secondary)]/80 rounded-md border border-slate-700/30 ${className}`}
     />
   )

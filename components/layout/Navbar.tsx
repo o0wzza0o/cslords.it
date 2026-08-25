@@ -83,10 +83,10 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[var(--blue-border)]/30 bg-[var(--bg-primary)]/90 backdrop-blur-md">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+    <header suppressHydrationWarning className="sticky top-0 z-40 w-full border-b border-[var(--blue-border)]/30 bg-[var(--bg-primary)]/90 backdrop-blur-md">
+      <div suppressHydrationWarning className="flex h-16 items-center justify-between px-4 sm:px-6">
         {/* Left Side: Hamburger (Mobile) + Logo + Primary Nav Links */}
-        <div className="flex items-center gap-3">
+        <div suppressHydrationWarning className="flex items-center gap-3">
           {user && (
             <button
               onClick={() => setMobileNavOpen(!mobileNavOpen)}

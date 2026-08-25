@@ -69,7 +69,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div suppressHydrationWarning className="space-y-6">
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -77,7 +77,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn">
+    <div suppressHydrationWarning className="max-w-3xl mx-auto space-y-6 animate-fadeIn">
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-wide">
           Account <span className="glow-heading">Profile</span>
