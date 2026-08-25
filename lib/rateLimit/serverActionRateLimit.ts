@@ -87,3 +87,52 @@ export async function withRateLimit<T>(
     }
   }
 }
+
+/**
+ * Multi-Factor Rate Limiter (IP + Device Fingerprint + Target Email Account)
+ * Blocks attackers EVEN IF they change IP / use VPN or switch devices.
+ */
+export async function withMultiFactorRateLimit<T>(
+  fn: () => Promise<T>,
+  ip: string,
+  deviceFingerprint: string,
+  targetEmail: string = '',
+  limit: number = 5,
+  windowMs: number = 900000 // 15 mins
+): Promise<RateLimitResult<T>> {
+  // 1. Check IP bucket
+  const ipCheck = await withRateLimit(async () => true, `ip:${ip}`, limit, windowMs)
+  if (!ipCheck.success) {
+    return {
+      success: false,
+      error: 'حظر أمني: تم تجاوز الحد الأقصى للمحاولات من هذا العنوان (IP Rate Limit). برجاء الانتظار.',
+      retryAfter: ipCheck.retryAfter,
+    }
+  }
+
+  // 2. Check Device Fingerprint bucket (BLOCKS EVEN IF VPN / IP CHANGES)
+  if (deviceFingerprint) {
+    const fpCheck = await withRateLimit(async () => true, `fp:${deviceFingerprint}`, limit, windowMs)
+    if (!fpCheck.success) {
+      return {
+        success: false,
+        error: 'حظر أمني: تم رصد محاولات متكررة من هذا الجهاز (Device Fingerprint Rate Limit). برجاء الانتظار.',
+        retryAfter: fpCheck.retryAfter,
+      }
+    }
+  }
+
+  // 3. Check Target Account bucket (BLOCKS EVEN IF IP AND DEVICE CHANGE)
+  if (targetEmail) {
+    const targetCheck = await withRateLimit(async () => true, `target:${targetEmail.toLowerCase().trim()}`, limit, windowMs)
+    if (!targetCheck.success) {
+      return {
+        success: false,
+        error: 'حظر أمني: تم حماية الحساب المستهدف لكثرة المحاولات الفاشلة. برجاء الانتظار.',
+        retryAfter: targetCheck.retryAfter,
+      }
+    }
+  }
+
+  return fn()
+}
